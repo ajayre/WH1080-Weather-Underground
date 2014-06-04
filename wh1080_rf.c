@@ -50,6 +50,7 @@
 #include "wh1080_rf.h"
 #include "bcm2835.h"
 #include "rfm01.h"
+#include "wunderground.h"
 
 uint16_t bw_scale[6] = {BW_67, BW_134, BW_200, BW_270, BW_340, BW_400};
 
@@ -178,13 +179,18 @@ float sample_rssi(int fd, int duration, int interval) {
 	return duty;
 }
 
+// pressure function and value
 extern int read_bmp085(float altitude);
+extern float pressure_hpa;
 
 int main(int argc, char *argv[])
 {
 	//unsigned char bytes2[] = {0xa1,0x82,0x0a,0x59,0x03,0x06,0x00,0x4e,0x06,0xc8};
 	//calculate_values(bytes2);
 	//return -1;
+
+	// initialize weather underground module
+	WUnderground_Init();
 	
 	uint8_t packet_sig = 0xfa;
 
@@ -433,7 +439,7 @@ int main(int argc, char *argv[])
 					read_bmp085(ALTITUDE_M);	// read pressure, calculate for the given altitude
 					#endif
 					
-					calculate_values(bytes);
+					calculate_values(bytes, pressure_hpa);
 					
 					// Wait for remainder of 47 seconds in standard scheduler until we can expect the next read
 					scheduler_standard();
@@ -470,7 +476,7 @@ int main(int argc, char *argv[])
 
 char *direction_name[] = {"N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"};
 
-void calculate_values(unsigned char *buf) {
+void calculate_values(unsigned char *buf, float pressure_hpa) {
 	
 	unsigned short device_id = ((unsigned short)buf[0] << 4) | (buf[1] >> 4);
 	unsigned short temperature_raw = (((unsigned short)buf[1] & 0x0f) << 8) | buf[2];
@@ -498,6 +504,10 @@ void calculate_values(unsigned char *buf) {
 	printf("Wind speed: %0.2f m/s, Gust Speed %0.2f m/s, %s\n", wind_avg_ms, wind_gust_ms, direction_str);
 	printf("Wind speed: %0.1f mph, Gust Speed %0.1f mph, %s\n", wind_avg_mph, wind_gust_mph, direction_str);
 	printf("Total rain: %0.1f mm\n", rain);
+        printf("Pressure (sea level): %0.1f hpa\n", pressure_hpa);
+
+	// submit observation to weather underground
+	WUnderground_Observation(temperature, humidity, wind_avg_mph, wind_gust_mph, direction_str, rain, pressure_hpa);
 }
 
 /*
