@@ -11,17 +11,3 @@ See also:
   http://www.quasaruk.co.uk/acatalog/RFM01.pdf
 
 Works on a Raspberry Pi V2 with an RFM01 module.
-
-Module connections:
-
-```RFM01   ->   RPi    (pin)
-
-SDO          MISO   (21)
-SDI          MOSI   (19)
-SCK          SCLK   (23)
-nSEL         CE0_N  (24)
-DATA/nFFS    GPIO27 (13)
-VDD          3V3    (1)
-GND          GND    (6)```
-
-17.3cm wire connected to ANT
