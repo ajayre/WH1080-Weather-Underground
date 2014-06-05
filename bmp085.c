@@ -36,8 +36,9 @@ int read_bmp085(float altitude) {
 		printf("Failed to map the physical GPIO registers into the virtual memory space.\n");
 		return -1;
 	}
-	if(map_peripheral(&bsc0) == -1) {
-		printf("Failed to map the physical BSC0 (I2C) registers into the virtual memory space.\n");
+	//if(map_peripheral(&bsc0) == -1) {
+	if(map_peripheral(&bsc1) == -1) {
+		printf("Failed to map the physical BSC1 (I2C) registers into the virtual memory space.\n");
 		return -1;
 	}
 	

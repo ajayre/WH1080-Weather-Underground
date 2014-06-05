@@ -1,5 +1,5 @@
 
-//#define USE_BMP085
+#define USE_BMP085
 //#define ALTITUDE_M	210.0f
 #define ALTITUDE_M	6.0f
 

@@ -5,6 +5,7 @@
 
 #define GPIO_BASE		(IOBASE + 0x200000)
 #define BSC0_BASE		(IOBASE + 0x205000)
+#define BSC1_BASE		(IOBASE + 0x804000)
 #define TIMER_ARM_BASE	(IOBASE + 0x00B000)
 
 
@@ -48,6 +49,12 @@
 #define BSC0_A		*(bsc0.addr + 0x03)
 #define BSC0_FIFO	*(bsc0.addr + 0x04)
 
+#define BSC1_C		*(bsc1.addr + 0x00)
+#define BSC1_S		*(bsc1.addr + 0x01)
+#define BSC1_DLEN	*(bsc1.addr + 0x02)
+#define BSC1_A		*(bsc1.addr + 0x03)
+#define BSC1_FIFO	*(bsc1.addr + 0x04)
+
 #define BSC_C_I2CEN	(1 << 15)
 #define BSC_C_INTR	(1 << 10)
 #define BSC_C_INTT	(1 << 9)
@@ -84,6 +91,7 @@ struct bcm2835_peripheral {
 
 extern struct bcm2835_peripheral gpio;
 extern struct bcm2835_peripheral bsc0;
+extern struct bcm2835_peripheral bsc1;
 extern struct bcm2835_peripheral timer_arm;
 
 extern void wait_i2c_done();

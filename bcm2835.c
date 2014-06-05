@@ -8,6 +8,7 @@
 
 struct bcm2835_peripheral gpio = {GPIO_BASE, 0};
 struct bcm2835_peripheral bsc0 = {BSC0_BASE, 0};
+struct bcm2835_peripheral bsc1 = {BSC1_BASE, 0};
 struct bcm2835_peripheral timer_arm = {TIMER_ARM_BASE, 0};
 
 // Exposes the physical address defined in the passed structure using mmap on /dev/mem
@@ -57,7 +58,7 @@ void unmap_peripheral(struct bcm2835_peripheral *p) {
 // Function to wait for the I2C transaction to complete
 void wait_i2c_done() {
 
-		while((!((BSC0_S) & BSC_S_DONE))) {
+		while((!((BSC1_S) & BSC_S_DONE))) {
 			usleep(100);
 		}
 }
@@ -68,15 +69,15 @@ void i2c_write(char dev_addr, char reg_addr, char *buf, unsigned short len) {
 
 		int idx;
 		
-		BSC0_A = dev_addr;
-		BSC0_DLEN = len + 1;	// one byte for the register address, plus the buffer length
+		BSC1_A = dev_addr;
+		BSC1_DLEN = len + 1;	// one byte for the register address, plus the buffer length
 		
-		BSC0_FIFO = reg_addr;	// start register address
+		BSC1_FIFO = reg_addr;	// start register address
 		for(idx=0; idx < len; idx++)
-			BSC0_FIFO = buf[idx];
+			BSC1_FIFO = buf[idx];
 			
-		BSC0_S = CLEAR_STATUS; // Reset status bits (see #define)
-		BSC0_C = START_WRITE;	// Start Write (see #define)
+		BSC1_S = CLEAR_STATUS; // Reset status bits (see #define)
+		BSC1_C = START_WRITE;	// Start Write (see #define)
 
 		wait_i2c_done();
 		
@@ -91,24 +92,24 @@ void i2c_read(char dev_addr, char reg_addr, char *buf, unsigned short len) {
 
 		memset(buf, 0, len); // clear the buffer
 
-		BSC0_DLEN = len;
-		BSC0_S = CLEAR_STATUS; // Reset status bits (see #define)
-		BSC0_C = START_READ;	// Start Read after clearing FIFO (see #define)
+		BSC1_DLEN = len;
+		BSC1_S = CLEAR_STATUS; // Reset status bits (see #define)
+		BSC1_C = START_READ;	// Start Read after clearing FIFO (see #define)
 
 		do {
 			// Wait for some data to appear in the FIFO
-			while((BSC0_S & BSC_S_TA) && !(BSC0_S & BSC_S_RXD));
+			while((BSC1_S & BSC_S_TA) && !(BSC1_S & BSC_S_RXD));
 
 			// Consume the FIFO
-			while((BSC0_S & BSC_S_RXD) && (bufidx < len)) {
-				buf[bufidx++] = BSC0_FIFO;
+			while((BSC1_S & BSC_S_RXD) && (bufidx < len)) {
+				buf[bufidx++] = BSC1_FIFO;
 			}
-		} while((!(BSC0_S & BSC_S_DONE)));
+		} while((!(BSC1_S & BSC_S_DONE)));
 }
 
 void dump_bsc_status() {
 	
-	unsigned int s = BSC0_S;
+	unsigned int s = BSC1_S;
 	
 	printf("BSC0_S: ERR=%d  RXF=%d  TXE=%d  RXD=%d  TXD=%d  RXR=%d  TXW=%d  DONE=%d  TA=%d\n",
 		(s & BSC_S_ERR) != 0, 

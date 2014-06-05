@@ -30,9 +30,13 @@ void WUnderground_Init
   void
   )
 {
-  // fixme - read station id and password from credentials file
-  strcpy(gStationId, "IHORNSEA3");
-  strcpy(gPassword,  "LIA80RvnuUY8WpO3peGC");
+  // read in credentials
+  FILE *fp = fopen(CREDENTIALS, "r");
+  fgets(gStationId, STATIONIDLENGTH, fp);
+  strtok(gStationId, "\n");
+  fgets(gPassword,  PASSWORDLENGTH,  fp);
+  strtok(gPassword, "\n");
+  fclose(fp);
 }
 
 // submits an observation
