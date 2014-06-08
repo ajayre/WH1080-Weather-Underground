@@ -12,7 +12,7 @@
 
 // file that contains weather underground station ID (first line) and
 // password (second line)
-#define CREDENTIALS "wunderground_creds.txt"
+#define CREDENTIALS "/home/pi/weather/wh1080wunderground/trunk/wunderground_creds.txt"
 
 // API url
 #define WUURL "http://rtupdate.wunderground.com/weatherstation/updateweatherstation.php"
