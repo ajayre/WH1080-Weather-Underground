@@ -8,6 +8,9 @@ Raspberry Pi bridge between a WH1080 weather station and the Weather Underground
 See also:
 
   http://www.raspberrypi.org/forums/viewtopic.php?p=152023
+  
+and:
+
   http://www.quasaruk.co.uk/acatalog/RFM01.pdf
 
 Works on a Raspberry Pi V2 with an RFM01 module.
