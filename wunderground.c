@@ -1,6 +1,21 @@
 /* Module for uploading observations to Weather Underground
-  (C) britishideas.com
-  GPL V2 - see license.txt */
+  (C) britishideas.com 2014
+
+  This program is free software; you can redistribute it and/or
+  modify it under the terms of the GNU General Public License
+  as published by the Free Software Foundation; either version 2
+  of the License, or (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+*/
 
 #include <stdio.h>
 #include <string.h>
@@ -27,6 +42,14 @@
 // = 3600 seconds / 48 seconds
 #define SAMPLESPERHOUR 75
 
+// number of wind direction vector to use for averaging
+#define WINDVECTORS 16
+
+// number of unique wind directions we support
+#define WINDDIRECTIONS 16
+
+#define PI 3.14159265359
+
 // module variables
 static char gStationId[STATIONIDLENGTH];
 static char gPassword[PASSWORDLENGTH];
@@ -38,6 +61,46 @@ static double RainatStartofDay = 0.0;
 static int CurrentRainSample = -1;
 static double LastRainSample = 0.0;
 static double RainSamples[SAMPLESPERHOUR];
+
+// keeps track of wind vectors (direction and speed)
+static int CurrentWindVector = 0;
+static int WindDirectionAveragingEnabled = 0;
+static int WindVectors_Dir[WINDVECTORS];
+static double WindVectors_Speed[WINDVECTORS];
+
+// gets the average wind direction in degrees based on previous wind vectors
+// adapted from pywws:
+// https://github.com/jim-easterbrook/pywws see pywws/Process.py
+static double GetAverageWindDirection
+  (
+  )
+{
+  double WeightedVectors[WINDDIRECTIONS];
+  int i;
+  int dir;
+
+  // initialize weighted vectors
+  for (dir = 0; dir < WINDDIRECTIONS; dir++) WeightedVectors[dir] = 0.0;
+
+  // set up weighted vectors
+  for (i = 0; i < WINDVECTORS; i++)
+  {
+    WeightedVectors[WindVectors_Dir[i]] += WindVectors_Speed[i];
+  }
+
+  // convert weighted vectors into a single average
+  double Ve = 0.0;
+  double Vn = 0.0;
+  for (dir = 0; dir < WINDDIRECTIONS; dir++)
+  {
+    Ve -= WeightedVectors[dir] * sin((dir * 360.0 / 16.0) * PI / 180.0);
+    Vn -= WeightedVectors[dir] * cos((dir * 360.0 / 16.0) * PI / 180.0);
+  }
+  double AveDir = ((atan2(Ve, Vn) * 180.0 / PI) + 180.0) * 16.0 / 360.0;
+  AveDir = ((int)(AveDir + 0.5) % 16) * (360.0 / WINDDIRECTIONS);
+
+  return AveDir;
+}
 
 // gets rain in the last hour in mm
 static double GetHourlyRainTotal
@@ -129,6 +192,12 @@ void WUnderground_Init
 
   // no rain data
   for (i = 0; i < SAMPLESPERHOUR; i++) RainSamples[i] = 0.0;
+  // no wind vectors
+  for (i = 0; i < WINDVECTORS; i++)
+  {
+    WindVectors_Dir[i] = 0;
+    WindVectors_Speed[i] = 0.0;
+  }
 }
 
 // submits an observation
@@ -161,23 +230,45 @@ void WUnderground_Observation
   double DewPointF = (Tdc * 9.0 / 5.0) + 32.0;
 
   // get wind direction
-  double WindDegrees = 0;
-       if (!strcmp(WindDirection, "N"))   WindDegrees = 0;
-  else if (!strcmp(WindDirection, "NNE")) WindDegrees = 22.5;
-  else if (!strcmp(WindDirection, "NE"))  WindDegrees = 45;
-  else if (!strcmp(WindDirection, "ENE")) WindDegrees = 67.5;
-  else if (!strcmp(WindDirection, "E"))   WindDegrees = 90;
-  else if (!strcmp(WindDirection, "ESE")) WindDegrees = 112.5;
-  else if (!strcmp(WindDirection, "SE"))  WindDegrees = 135;
-  else if (!strcmp(WindDirection, "SSE")) WindDegrees = 157.5;
-  else if (!strcmp(WindDirection, "S"))   WindDegrees = 180;
-  else if (!strcmp(WindDirection, "SSW")) WindDegrees = 202.5;
-  else if (!strcmp(WindDirection, "SW"))  WindDegrees = 225;
-  else if (!strcmp(WindDirection, "WSW")) WindDegrees = 247.5;
-  else if (!strcmp(WindDirection, "W"))   WindDegrees = 270;
-  else if (!strcmp(WindDirection, "WNW")) WindDegrees = 292.5;
-  else if (!strcmp(WindDirection, "NW"))  WindDegrees = 315;
-  else if (!strcmp(WindDirection, "NNW")) WindDegrees = 337.5;
+  double WindIndex = 0;
+       if (!strcmp(WindDirection, "N"))   WindIndex = 0;
+  else if (!strcmp(WindDirection, "NNE")) WindIndex = 1;
+  else if (!strcmp(WindDirection, "NE"))  WindIndex = 2;
+  else if (!strcmp(WindDirection, "ENE")) WindIndex = 3;
+  else if (!strcmp(WindDirection, "E"))   WindIndex = 4;
+  else if (!strcmp(WindDirection, "ESE")) WindIndex = 5;
+  else if (!strcmp(WindDirection, "SE"))  WindIndex = 6;
+  else if (!strcmp(WindDirection, "SSE")) WindIndex = 7;
+  else if (!strcmp(WindDirection, "S"))   WindIndex = 8;
+  else if (!strcmp(WindDirection, "SSW")) WindIndex = 9;
+  else if (!strcmp(WindDirection, "SW"))  WindIndex = 10;
+  else if (!strcmp(WindDirection, "WSW")) WindIndex = 11;
+  else if (!strcmp(WindDirection, "W"))   WindIndex = 12;
+  else if (!strcmp(WindDirection, "WNW")) WindIndex = 13;
+  else if (!strcmp(WindDirection, "NW"))  WindIndex = 14;
+  else if (!strcmp(WindDirection, "NNW")) WindIndex = 15;
+
+  // calculate degrees for wind direction
+  double WindDegrees = WindIndex * 22.5;
+
+  // store wind vector in circular buffer
+  WindVectors_Dir[CurrentWindVector] = WindIndex;
+  WindVectors_Speed[CurrentWindVector] = WindAveMph;
+  CurrentWindVector++;
+  if (CurrentWindVector == WINDVECTORS)
+  {
+    CurrentWindVector = 0;
+    // now have full set of samples so can use average
+    WindDirectionAveragingEnabled = 1;
+  }
+
+  // if wind direction averaging enabled then get the average direction
+  double AveWindDegrees = 0.0;
+  if (WindDirectionAveragingEnabled)
+  {
+    AveWindDegrees = GetAverageWindDirection();
+    printf("Average wind direction = %f\n", AveWindDegrees);
+  }
 
   // get amount of rain today in mm
   double RainToday = GetDailyRainTotal(TotalRainMm);
