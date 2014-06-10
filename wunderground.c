@@ -48,6 +48,10 @@
 // number of unique wind directions we support
 #define WINDDIRECTIONS 16
 
+// minimum speed of wind in mph before we start using the wind direction for
+// averaging
+#define MINIMUMWINDSPEED 0.1
+
 #define PI 3.14159265359
 
 // module variables
@@ -65,11 +69,12 @@ static double RainSamples[SAMPLESPERHOUR];
 // keeps track of wind vectors (direction and speed)
 static int CurrentWindVector = 0;
 static int WindDirectionAveragingEnabled = 0;
+static double LastAveWindDegrees = 0.0;
 static int WindVectors_Dir[WINDVECTORS];
 static double WindVectors_Speed[WINDVECTORS];
 
 // gets the average wind direction in degrees based on previous wind vectors
-// adapted from pywws:
+// mostly adapted from pywws:
 // https://github.com/jim-easterbrook/pywws see pywws/Process.py
 static double GetAverageWindDirection
   (
@@ -78,6 +83,7 @@ static double GetAverageWindDirection
   double WeightedVectors[WINDDIRECTIONS];
   int i;
   int dir;
+  int DeadCalm = 1;
 
   // initialize weighted vectors
   for (dir = 0; dir < WINDDIRECTIONS; dir++) WeightedVectors[dir] = 0.0;
@@ -85,7 +91,17 @@ static double GetAverageWindDirection
   // set up weighted vectors
   for (i = 0; i < WINDVECTORS; i++)
   {
-    WeightedVectors[WindVectors_Dir[i]] += WindVectors_Speed[i];
+    if (WindVectors_Speed[i] > MINIMUMWINDSPEED)
+    {
+      WeightedVectors[WindVectors_Dir[i]] += WindVectors_Speed[i];
+      DeadCalm = 0;
+    }
+  }
+
+  // if all wind vectors show no wind then use the last average we worked out
+  if (DeadCalm)
+  {
+    return LastAveWindDegrees;
   }
 
   // convert weighted vectors into a single average
@@ -93,11 +109,11 @@ static double GetAverageWindDirection
   double Vn = 0.0;
   for (dir = 0; dir < WINDDIRECTIONS; dir++)
   {
-    Ve -= WeightedVectors[dir] * sin((dir * 360.0 / 16.0) * PI / 180.0);
-    Vn -= WeightedVectors[dir] * cos((dir * 360.0 / 16.0) * PI / 180.0);
+    Ve -= WeightedVectors[dir] * sin((dir * 360.0 / WINDDIRECTIONS) * PI / 180.0);
+    Vn -= WeightedVectors[dir] * cos((dir * 360.0 / WINDDIRECTIONS) * PI / 180.0);
   }
-  double AveDir = ((atan2(Ve, Vn) * 180.0 / PI) + 180.0) * 16.0 / 360.0;
-  AveDir = ((int)(AveDir + 0.5) % 16) * (360.0 / WINDDIRECTIONS);
+  double AveDir = ((atan2(Ve, Vn) * 180.0 / PI) + 180.0) * WINDDIRECTIONS / 360.0;
+  AveDir = ((int)(AveDir + 0.5) % WINDDIRECTIONS) * (360.0 / WINDDIRECTIONS);
 
   return AveDir;
 }
@@ -263,12 +279,16 @@ void WUnderground_Observation
   }
 
   // if wind direction averaging enabled then get the average direction
-  double AveWindDegrees = 0.0;
+  // if not enabled then use current wind direction instead
+  double AveWindDegrees = WindDegrees;
   if (WindDirectionAveragingEnabled)
   {
     AveWindDegrees = GetAverageWindDirection();
     printf("Average wind direction = %f\n", AveWindDegrees);
   }
+
+  // remember last average wind direction
+  LastAveWindDegrees = AveWindDegrees;
 
   // get amount of rain today in mm
   double RainToday = GetDailyRainTotal(TotalRainMm);
@@ -286,7 +306,7 @@ void WUnderground_Observation
     WindGustMph,
     PressureHpa * 0.0295299830714,
     DewPointF,
-    WindDegrees,
+    AveWindDegrees,
     RainToday * 0.0393701,
     RainLastHour * 0.0393701
     );
