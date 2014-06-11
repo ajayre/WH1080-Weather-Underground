@@ -112,8 +112,9 @@ static double GetAverageWindDirection
     Ve -= WeightedVectors[dir] * sin((dir * 360.0 / WINDDIRECTIONS) * PI / 180.0);
     Vn -= WeightedVectors[dir] * cos((dir * 360.0 / WINDDIRECTIONS) * PI / 180.0);
   }
-  double AveDir = ((atan2(Ve, Vn) * 180.0 / PI) + 180.0) * WINDDIRECTIONS / 360.0;
-  AveDir = ((int)(AveDir + 0.5) % WINDDIRECTIONS) * (360.0 / WINDDIRECTIONS);
+  double AveDir = ((atan2(Ve, Vn) * 180.0 / PI) + 180.0);
+  //double AveDir = ((atan2(Ve, Vn) * 180.0 / PI) + 180.0) * WINDDIRECTIONS / 360.0;
+  //AveDir = ((int)(AveDir + 0.5) % WINDDIRECTIONS) * (360.0 / WINDDIRECTIONS);
 
   return AveDir;
 }
