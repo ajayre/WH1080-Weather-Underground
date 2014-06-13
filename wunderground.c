@@ -113,8 +113,6 @@ static double GetAverageWindDirection
     Vn -= WeightedVectors[dir] * cos((dir * 360.0 / WINDDIRECTIONS) * PI / 180.0);
   }
   double AveDir = ((atan2(Ve, Vn) * 180.0 / PI) + 180.0);
-  //double AveDir = ((atan2(Ve, Vn) * 180.0 / PI) + 180.0) * WINDDIRECTIONS / 360.0;
-  //AveDir = ((int)(AveDir + 0.5) % WINDDIRECTIONS) * (360.0 / WINDDIRECTIONS);
 
   return AveDir;
 }
@@ -231,10 +229,12 @@ void WUnderground_Observation
 {
   char Cmd[CMDLENGTH];
   char UTCTimestamp[40];
+  char FileTimestamp[40];
 
   // get timestamp
   time_t now = time(NULL);
   strftime(UTCTimestamp, 40, "%Y-%m-%d+%H%%3A%M%%3A%S", gmtime(&now));
+  strftime(FileTimestamp, 40, "%Y%m%d-%H%M%S", localtime(&now));
 
   // get temperature in F
   double TemperatureF = (TemperatureC * 9.0 / 5.0) + 32.0;
@@ -296,7 +296,9 @@ void WUnderground_Observation
   // get amount of rain in last hour in mm
   double RainLastHour = GetHourlyRainTotal(TotalRainMm);
 
-  sprintf(Cmd, "wget -b -a /tmp/wunderground.log -O /tmp/wunderground-result.html \"%s?action=updateraw&ID=%s&PASSWORD=%s&realtime=1&rtfreq=48&dateutc=%s&tempf=%f&humidity=%f&windspeedmph=%f&windgustmph=%f&baromin=%f,&dewptf=%f&winddir=%.1f&dailyrainin=%f&rainin=%f\"",
+  sprintf(Cmd, "wget -b -a /tmp/wunderground-%s.log -O /tmp/wunderground-result-%s.html \"%s?action=updateraw&ID=%s&PASSWORD=%s&realtime=1&rtfreq=48&dateutc=%s&tempf=%f&humidity=%f&windspeedmph=%f&windgustmph=%f&baromin=%f,&dewptf=%f&winddir=%.1f&dailyrainin=%f&rainin=%f\"",
+    FileTimestamp,
+    FileTimestamp,
     WUURL,
     gStationId,
     gPassword,
