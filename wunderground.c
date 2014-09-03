@@ -296,7 +296,7 @@ void WUnderground_Observation
   // get amount of rain in last hour in mm
   double RainLastHour = GetHourlyRainTotal(TotalRainMm);
 
-  sprintf(Cmd, "wget -b -a /tmp/wunderground-%s.log -O /tmp/wunderground-result-%s.html \"%s?action=updateraw&ID=%s&PASSWORD=%s&realtime=1&rtfreq=48&dateutc=%s&tempf=%f&humidity=%f&windspeedmph=%f&windgustmph=%f&baromin=%f,&dewptf=%f&winddir=%.1f&dailyrainin=%f&rainin=%f\"",
+  sprintf(Cmd, "wget -b -a /tmp/wunderground-%s.log -O /tmp/wunderground-result-%s.html \"%s?action=updateraw&ID=%s&PASSWORD=%s&realtime=1&rtfreq=48&dateutc=%s&tempf=%.1f&humidity=%.2f&windspeedmph=%.2f&windgustmph=%.2f&baromin=%.4f&dewptf=%.1f&winddir=%.1f&dailyrainin=%.4f&rainin=%.4f\"",
     FileTimestamp,
     FileTimestamp,
     WUURL,

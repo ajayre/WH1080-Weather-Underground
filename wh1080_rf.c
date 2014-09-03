@@ -116,8 +116,8 @@ uint16_t cmd_freq	= CMD_FREQ|0x620; // 433.92 MHz
 	uint16_t cmd_fifo	= CMD_FIFO|0x00;
 
 	uint16_t cmd_config	= CMD_CONFIG|BAND_433|LOAD_CAP_12C0|BW_67;
-	//uint16_t cmd_rcon = (CMD_RCON|RX_EN|VDI_DRSSI|LNA_0|RSSI_91);
-	uint16_t cmd_rcon = (CMD_RCON|RX_EN|VDI_DRSSI|LNA_14|RSSI_97);
+	uint16_t cmd_rcon = (CMD_RCON|RX_EN|VDI_DRSSI|LNA_0|RSSI_91);
+	//uint16_t cmd_rcon = (CMD_RCON|RX_EN|VDI_DRSSI|LNA_14|RSSI_97);
 	uint16_t cmd_dfilter = (CMD_DFILTER|CR_LOCK_FAST|FILTER_OOK);
 #endif
 
